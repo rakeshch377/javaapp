@@ -1,0 +1,4 @@
+sudo yum install git -y
+sudo amazon-linux-extras install java-openjdk11 -y
+sudo wget http://dlcdn.apache.org/tomcat/tomcat-9/v9.0.80/bin/apache-tomcat-9.0.80.tar.gz
+sudo tar -zxvf *.gz
