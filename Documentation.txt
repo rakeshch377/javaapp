@@ -1,0 +1,273 @@
+                         ##Deployment of JAVA Application in Tomcat Application server##
+
+Overview:
+
+        This project aims to implement the Declarative CICD pipeline for end-to-end Deployment of the simple JAVA 	application.
+
+
+Tools :
+
+SCM: Github
+Build: Maven
+Quality analysis: SonarQube
+Repository Manager: Nexus
+Host Server: Apache Tomcat
+Integration: Jenkins
+Cloud Environment: AWS
+
+
+SCM: 
+
+	GitHub is a web-based source code management tool for hosting and maintaining multiple versions of our application.
+
+      Repository Link: https://github.com/rakeshch377/javaapp.git
+
+
+Maven: 
+	
+	Maven is a famous build tool for managing the build life cycle of Java applications which includes compiling source code, managing dependencies, running unit tests, packaging, and installing the application. 
+
+
+  Maven Link: https://downloads.apache.org/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz
+
+
+Maven uses a POM file (pom.xml) to define the project configuration, dependencies, plugins, and other settings.
+Maven simplifies the process of managing project dependencies. It can automatically download and include libraries and frameworks required for the project, saving developers from manually managing dependencies.
+
+
+
+SonarQube: 
+
+SonarQube is an open-source platform for continuous inspection of code quality. It provides static code analysis to automatically detect code smells, bugs, and security vulnerabilities in various programming languages. SonarQube helps development teams maintain and improve the quality of their codebase by identifying and addressing issues early in the development process.
+
+Plugins:
+
+     1)SonarQube Scanner
+
+       SonarQube scanner is a plugin unit which is used to integrate the sonar server with the Jenkins 	  	          dashboard.
+
+Sonar Setup:
+
+1)Launch the Amazon ec2 instance with Amazon Linux 2 AMI, T2.medium instance type, and a minimum of 20 GB EBS(Elastic Blob Storage) and 9000 port open in the security group.
+
+2)Install the java11 on the server
+
+           CMD:  sudo amazon-linux-extras install java-openjdk11
+
+3)Go to /opt directory and download the sonar zip file in that app directory
+
+          CMD: wget https://binaries.sonarsource.com/Distribution/sonarqube/
+                       sonarqube8.9.6.50800.zip
+
+4)Unzip the file
+
+                CMD: unzip sonarqube8.9.6.50800.zip
+
+5)Add one user named sonar
+
+                 CMD:  useradd sonar
+
+6)Change the permissions of sonar files
+
+                 CMD: chmod 777 sonar_files
+
+7)Change owners of sonar files to sonar
+
+                 CMD: chown sonar: sonar sonar_files -R
+
+8)Login in sonar user 
+
+                 CMD: su - sonar 
+
+9)Go to the bin directory and start the sonar.sh script
+
+                 CMD:  ./sonar.sh 
+
+10)Open sonar application using the public IP of the sonar server in any browser
+
+                 publicIp:9000
+
+
+Integration of Sonar with Jenkins:
+
+1)Install the Sonarqube scanner plugin in the Jenkins dashboard
+
+           Path: ManageJenkins/plugins/Available plugins
+
+2)Go to system configuration and fill in all required details about the sonarQube server such as the name of the sonar server,  Server URL, a Server Authentication token which is generated on the sonar dashboard.
+
+
+
+    
+Nexus Repository Manager: 
+
+Nexus Repository Manager is a popular open-source repository manager used for managing and hosting artifacts. It supports various package formats, making it versatile for different types of projects. Some of the supported formats include Maven, npm, and Docker.
+
+Plugins:
+
+       1)Nexus Artifact Uploader        
+       2)Nexus Platform plugin
+
+	These two plugins provided flexibility to integrate the Nexus to the Jenkins dashboard.
+
+
+Nexus Setup:
+
+1)Launch the Amazon ec2 instance with Amazon Linux 2 AMI, T2.medium instance type, and a minimum of 20 GB EBS(Elastic Blob Storage) and 8081 port open in the security group.
+
+2)Create directory named app in / directory
+
+               CMD: mkdir /app
+
+3)Download the Nexus file in the app folder
+
+               CMD: wget -O nexus.tar.gz https://download.sonatype.com/nexus/3/latest-  unix.tar.gz
+
+4)untar the file and we get 2 files
+
+               CMD: tar -zxvf nexus.tar.gz
+
+5)Add user named nexus and attach to nexus files
+
+                CMD: useradd nexus
+                CMD: chown nexus:nexus nexus_files -R
+
+6)Go to the bin directory and edit the nexus.rc file such that run as nexus user.
+
+7)Create a nexus.service in  /etc/systemd/system/ folder and paste the below script
+
+                     CMD: vi nexus.service
+                                                                                      [Unit]
+Description=nexus service
+After=network.target
+[Service]
+Type=forking
+LimitNOFILE=65536
+User=nexus
+Group=nexus
+ExecStart=/app/nexus/bin/nexus start
+ExecStop=/app/nexus/bin/nexus stop
+User=nexus
+Restart=on-abort
+[Install]
+WantedBy=multi-user.target
+
+8)Go to bin folder and check the configuration
+
+              CMD: chkconfig nexus on
+
+9)Start the nexus
+                    
+              CMD: systemctl start the nexus
+
+10)Access the nexus dashboard by using publicIp and portnumber
+
+              CMD: publicIp:8081
+
+11)Create a one repository in Nexus dashboard to store our artifacts
+
+
+
+Integration of nexus to Jenkins:
+
+1)Install the Nexus Artifact uploader and nexus platform plugins in the Jenkins dashboard
+
+           Path: ManageJenkins/plugins/Available plugins
+
+2)Go to System Configuration and provide all required information about nexus server such as nexus repository manager server, display name, server id, server url, credentials.
+
+
+
+
+Apache Tomcat Application Server: 
+
+	Apache Tomcat is an open-source project developed by the Apache Software Foundation. This means that its source code is freely available, and users can modify and distribute it under the terms of the Apache License.
+
+          Tomcat is primarily used for hosting Java Servlets and JavaServer Pages. Servlets are Java programs that run on the server and handle client requests, while JSPs allow embedding Java code within HTML pages to generate dynamic content.
+
+           Tomcat is known for its simple configuration. The server can be easily set up and customized through XML configuration files. It can also be embedded within other applications.
+
+
+Tomcat Setup:
+
+Launch the Amazon ec2 instance with Amazon Linux 2 AMI, T2.micro instance type, and a minimum of 10 GB EBS(Elastic Blob Storage) and 8080 port open in the security group.
+
+Install java11 on the server
+
+           CMD: amazon-linux-extras install java-openjdk11 -y
+
+Download Tomcat file from dlcdn apache website
+
+           CMD: wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.85/bin/apache-tomcat-9.0.85.tar.gz
+
+untar the file 
+
+           CMD: tar -zxvf  apache-tomcat-9.0.85.tar.gz
+
+Go to conf folder and edit the tomcat-user.xml file as per our requirements, For instance we need to add 2 roles for accessing the manager app in tomcat.
+
+           CMD: vi conf/tomcat-user.xml file
+                    <role rolename = “manager-gui”/>
+                     <role rolenam = “manager-script”/>
+                     <role username = “<user_name”  password = “<password>” roles= “manager-gui,  
+                       manager-script”/>
+
+Go to bin and stop and start tomcat
+
+            CMD: ./shutdown.sh
+            CMD: ./startup.sh
+
+Go to any browser and access the tomcat server using publicip and 8080 port
+
+                      publicip:8080
+
+if we want to deploy application we need to place the artifact in webapps folder,so application is deployed.
+
+
+Plugins:
+
+	1)SSH Agent
+               
+	This plugin enables the option to integrate the tomcat server with jenkins dashboard
+
+Integration of tomcat with Jenkins:
+
+1)Go to pipeline syntax and create an ssh agent for tomat server by giving  required information about tomcat server such as username and private key.
+
+
+
+
+Jenkins : 
+
+Jenkins is an open-source automation server widely used for building, testing, and deploying software. It facilitates continuous integration and continuous delivery (CI/CD) by automating the processes involved in the software development lifecycle.
+
+Jenkins supports the creation of pipelines, allowing you to define and automate a series of steps for building, testing, and deploying applications.
+
+Jenkins Setup:
+
+Launch the Amazon ec2 instance with Amazon Linux 2 AMI, T2.micro instance type, and a minimum of 10 GB EBS(Elastic Blob Storage) and 8080 port open in the security group.
+
+Install java11 on the server
+
+             CMD: amazon-linux.extras install java-openjdk11 -y
+
+Download the jenkins repos from jenkins.io website
+
+             CMD: sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+             CMD: sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+Install the Jenkins 
+
+             CMD: yum install jenkins -y
+
+start the Jenkins
+
+             CMD: systemctl start jenkins
+
+Access the jenkins dashboard by using publcip and 8080 port
+
+             publicip:8080
+
+
+
+ 
