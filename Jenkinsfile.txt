@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+    stages {
+        stage ("clone") {
+            steps {
+                sh "git clone https://github.com/rakeshch377/javaapp.git"
+            }
+        }
+        stage ("maven_build") {
+            steps {
+                dir ("$WORKSPACE/javaapp") {
+                    sh '''
+                        wget https://downloads.apache.org/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz
+                        tar -zxvf apache-maven-3.9.6-bin.tar.gz
+                        $WORKSPACE/javaapp/apache-maven-3.9.6/bin/mvn clean package
+                        '''
+                }
+            }
+        }
+        stage ("Quality_Inspection"){
+            steps {
+                dir ("$WORKSPACE/javaapp") {
+                    withSonarQubeEnv(credentialsId: "sonar-token", installationName: "mysonar") {
+                        sh "$WORKSPACE/javaapp/apache-maven-3.9.6/bin/mvn sonar:sonar"
+                    }
+                }
+            }
+        }
+        stage ('Artifact_storage') {
+            steps {
+                nexusArtifactUploader artifacts: [[artifactId: 'myweb', classifier: '', file: 'target/myweb-8.4.9.war', type: 'war']], credentialsId: 'd32b4d3f-b23a-4c3d-8237-b462d5b9d584', groupId: 'in.javahome', nexusUrl: '44.201.255.3:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'myrepo', version: '8.4.9'
+            }
+        }
+        stage ('Tomcat_Deployment') {
+            steps {
+                sshagent(['c060a463-03ad-4fa0-a74e-a71f46d433ac']) {
+                    sh "scp -o strictHostKeyChecking=no $WORKSPACE/javaapp/target/myweb-8.4.9.war ec2-user@54.145.17.235:/opt/apache-tomcat-9.0.85/webapps/javaapp.war"
+                }    
+            }
+        }
+    }
+}
+
+
